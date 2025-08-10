@@ -56,7 +56,12 @@ const BusinessTravelLocationSelector = ({
       }
 
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
+      const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+      setApiError('Missing Google Maps API key. Set REACT_APP_GOOGLE_MAPS_API_KEY at build time and rebuild.');
+        return;
+      }
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async&v=weekly`;
       script.async = true;
       script.defer = true;
       script.onload = () => {
@@ -287,35 +292,8 @@ const BusinessTravelLocationSelector = ({
     setSearchResults([]);
 
     try {
-      if (map && window.google.maps.places) {
-        const placesService = new window.google.maps.places.PlacesService(map);
-        
-        const request = {
-          query: searchQuery,
-          fields: ['name', 'formatted_address', 'geometry', 'place_id', 'types'],
-          location: map.getCenter(),
-          radius: 500000 // 500km radius for international search
-        };
-
-        placesService.textSearch(request, (results, status) => {
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && results.length > 0) {
-            const placesResults = results.slice(0, 10).map(place => ({
-              name: place.name,
-              geometry: { location: place.geometry.location },
-              formatted_address: place.formatted_address,
-              place_id: place.place_id,
-              types: place.types
-            }));
-            
-            setSearchResults(placesResults);
-            setIsSearching(false);
-          } else {
-            fallbackToGeocoding();
-          }
-        });
-      } else {
-        fallbackToGeocoding();
-      }
+      // Always use geocoding to avoid deprecated PlacesService warnings
+      fallbackToGeocoding();
     } catch (error) {
       console.error('Search error:', error);
       fallbackToGeocoding();
